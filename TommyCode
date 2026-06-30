@@ -1,0 +1,487 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+
+-- ==========================================
+-- GUI SETUP (centered)
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SoccerEventFarmer"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 9999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 250, 0, 390)
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -195) -- centered
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.ZIndex = 9999
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.Text = "⚽ Soccer Event Auto"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = MainFrame
+
+-- Dragging logic
+local dragging, dragInput, dragStart, startPos
+Title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+Title.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+local function createToggle(name, yPos)
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    ToggleBtn.Position = UDim2.new(0.05, 0, 0, yPos)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    ToggleBtn.Text = name .. ": OFF"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    ToggleBtn.Font = Enum.Font.GothamSemibold
+    ToggleBtn.TextSize = 14
+    ToggleBtn.Parent = MainFrame
+    
+    local UICornerBtn = Instance.new("UICorner")
+    UICornerBtn.CornerRadius = UDim.new(0, 6)
+    UICornerBtn.Parent = ToggleBtn
+    
+    local state = false
+    ToggleBtn.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            ToggleBtn.Text = name .. ": ON"
+            ToggleBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            ToggleBtn.Text = name .. ": OFF"
+            ToggleBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
+    
+    return function() return state end
+end
+
+local getOrbsState = createToggle("Auto Collect Orbs", 40)
+local getHatchState = createToggle("Auto Hatch Eggs", 85)
+local getShootState = createToggle("Auto Shoot", 130)
+local getFpsBoostState = createToggle("FPS Boost", 175)
+local getUpgradesState = createToggle("Auto Upgrades", 220)
+local getGiftsState = createToggle("Auto Free Gifts", 265)
+local getNoAnimState = createToggle("No Egg Animation", 310)
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0.9, 0, 0, 25)
+CloseBtn.Position = UDim2.new(0.05, 0, 0, 355)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Text = "Close Script"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.Parent = MainFrame
+
+local UICornerClose = Instance.new("UICorner")
+UICornerClose.CornerRadius = UDim.new(0, 6)
+UICornerClose.Parent = CloseBtn
+
+local running = true
+CloseBtn.MouseButton1Click:Connect(function()
+    running = false
+    ScreenGui:Destroy()
+end)
+
+-- ==========================================
+-- FPS BOOST OVERLAY GUI (simplified stats)
+-- ==========================================
+local OverlayGui = Instance.new("ScreenGui")
+OverlayGui.Name = "SoccerEventOverlay"
+OverlayGui.ResetOnSpawn = false
+OverlayGui.DisplayOrder = 1000
+OverlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+OverlayGui.Parent = CoreGui
+
+local Overlay = Instance.new("Frame")
+Overlay.Size = UDim2.new(1, 0, 1, 0)
+Overlay.Position = UDim2.new(0, 0, 0, 0)
+Overlay.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Overlay.Visible = false
+Overlay.Parent = OverlayGui
+
+local OverlayWarning = Instance.new("TextLabel")
+OverlayWarning.Size = UDim2.new(1, 0, 0, 100)
+OverlayWarning.Position = UDim2.new(0, 0, 0, 50)
+OverlayWarning.BackgroundTransparency = 1
+OverlayWarning.Text = "FPS BOOST"
+OverlayWarning.TextColor3 = Color3.fromRGB(100, 255, 100)
+OverlayWarning.Font = Enum.Font.GothamBlack
+OverlayWarning.TextSize = 40
+OverlayWarning.Parent = Overlay
+
+local infoLbl = Instance.new("TextLabel")
+infoLbl.Size = UDim2.new(1, 0, 0, 40)
+infoLbl.Position = UDim2.new(0, 0, 0.5, 20)
+infoLbl.BackgroundTransparency = 1
+infoLbl.Text = "FPS Boost Active"
+infoLbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+infoLbl.Font = Enum.Font.GothamSemibold
+infoLbl.TextSize = 20
+infoLbl.Parent = Overlay
+
+local userLbl = Instance.new("TextLabel")
+userLbl.Size = UDim2.new(1, 0, 0, 40)
+userLbl.Position = UDim2.new(0, 0, 1, -40)
+userLbl.BackgroundTransparency = 1
+userLbl.Text = "Farming as: " .. (Players.LocalPlayer.DisplayName or Players.LocalPlayer.Name)
+userLbl.TextColor3 = Color3.fromRGB(150, 150, 150)
+userLbl.Font = Enum.Font.GothamSemibold
+userLbl.TextSize = 16
+userLbl.Parent = Overlay
+
+-- ==========================================
+-- FPS BOOST LOOP (no require)
+-- ==========================================
+task.spawn(function()
+    local RunService = game:GetService("RunService")
+    local Lighting = game:GetService("Lighting")
+    
+    local originalWaterWave = Workspace.Terrain.WaterWaveSize
+    local originalShadows = Lighting.GlobalShadows
+    
+    local wasBoostEnabled = false
+    
+    while running do
+        task.wait(1)
+        local isBoostEnabled = getFpsBoostState()
+        
+        if isBoostEnabled ~= wasBoostEnabled then
+            wasBoostEnabled = isBoostEnabled
+            Overlay.Visible = isBoostEnabled
+            
+            pcall(function()
+                if isBoostEnabled then
+                    if setfpscap then setfpscap(15) end
+                    RunService:Set3dRenderingEnabled(false)
+                    Lighting.GlobalShadows = false
+                    Workspace.Terrain.WaterWaveSize = 0
+                else
+                    if setfpscap then setfpscap(0) end
+                    RunService:Set3dRenderingEnabled(true)
+                    Lighting.GlobalShadows = originalShadows
+                    Workspace.Terrain.WaterWaveSize = originalWaterWave
+                end
+            end)
+        end
+    end
+    
+    pcall(function()
+        if setfpscap then setfpscap(0) end
+        RunService:Set3dRenderingEnabled(true)
+        Lighting.GlobalShadows = originalShadows
+        Workspace.Terrain.WaterWaveSize = originalWaterWave
+    end)
+end)
+
+-- ==========================================
+-- AUTO SHOOT LOOP
+-- ==========================================
+_G.isCollectingOrb = false
+_G.sweepCenterCFrame = nil
+
+task.spawn(function()
+    local Network = ReplicatedStorage:WaitForChild("Network")
+    local InvokeCustom = Network:WaitForChild("Instancing_InvokeCustomFromClient")
+    
+    local optimalKickPos = Vector3.new(1543.26, 15.96, -32024.27)
+    
+    while running do
+        task.wait(0.1)
+        if getShootState() then
+            pcall(function()
+                local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if root and not _G.isHatching and not _G.isCollectingOrb then
+                    root.CFrame = CFrame.new(optimalKickPos)
+                    _G.sweepCenterCFrame = root.CFrame
+                end
+                
+                local randomPower = math.random(98, 100) / 100
+                local argsGZ = { "SoccerEvent", "GZ_Step", randomPower }
+                InvokeCustom:InvokeServer(unpack(argsGZ))
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- AUTO COLLECT ORBS LOOP
+-- ==========================================
+_G.isHatching = false 
+
+task.spawn(function()
+    while running do
+        task.wait(0.1)
+        if getOrbsState() and not _G.isHatching then
+            pcall(function()
+                local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+
+                if not _G.sweepCenterCFrame then
+                    _G.sweepCenterCFrame = root.CFrame
+                end
+                
+                local debris = Workspace:FindFirstChild("__DEBRIS")
+                if not debris then return end
+                
+                local foundOrbs = false
+                
+                for _, category in ipairs(debris:GetChildren()) do
+                    for _, orb in ipairs(category:GetChildren()) do
+                        if not running or not getOrbsState() or _G.isHatching then 
+                            _G.isCollectingOrb = false
+                            return 
+                        end
+                        
+                        if string.find(string.lower(orb.Name), "orb") and orb:IsA("BasePart") then
+                            _G.isCollectingOrb = true
+                            root.CFrame = orb.CFrame
+                            foundOrbs = true
+                            task.wait(0.05)
+                            pcall(function() orb:Destroy() end)
+                        end
+                    end
+                end
+                
+                _G.isCollectingOrb = false
+                
+                if foundOrbs and _G.sweepCenterCFrame and not _G.isHatching then
+                    root.CFrame = _G.sweepCenterCFrame
+                    for i = 1, 10 do
+                        task.wait(0.1)
+                        if not running or not getOrbsState() then break end
+                    end
+                end
+            end)
+        else
+            _G.sweepCenterCFrame = nil
+        end
+    end
+end)
+
+-- ==========================================
+-- AUTO HATCH CUSTOM EGG LOOP (maxHatch = 50)
+-- ==========================================
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+task.spawn(function()
+    local Network = ReplicatedStorage:WaitForChild("Network")
+    local CustomHatch = Network:WaitForChild("CustomEggs_Hatch")
+    
+    while running do
+        task.wait(0.1)
+        if getHatchState() then
+            pcall(function()
+                local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                
+                local targetCFrame = nil
+                local targetEggHash = nil
+                local shortestDistance = math.huge
+                
+                local things = Workspace:FindFirstChild("__THINGS")
+                if things then
+                    local function checkEggs(folder)
+                        if not folder then return end
+                        for _, egg in ipairs(folder:GetChildren()) do
+                            if egg:IsA("Model") then
+                                local pivot = egg:GetPivot()
+                                local distance = (pivot.Position - root.Position).Magnitude
+                                if distance < shortestDistance then
+                                    shortestDistance = distance
+                                    targetCFrame = pivot
+                                    targetEggHash = egg.Name
+                                end
+                            end
+                        end
+                    end
+                    
+                    checkEggs(things:FindFirstChild("CustomEggs"))
+                    checkEggs(things:FindFirstChild("Eggs"))
+                end
+                
+                local originalCFrame = root.CFrame
+                
+                if targetCFrame then
+                    _G.isHatching = true
+                    root.CFrame = targetCFrame * CFrame.new(0, 0, 8)
+                    task.wait(0.2)
+                else
+                    warn("[Soccer Event] Could not find physical Egg.")
+                end
+                
+                -- ✅ SET YOUR MAX HATCH HERE (you said 50)
+                local maxHatch = 50
+                
+                if not targetEggHash then return end
+                
+                local args = { targetEggHash, maxHatch }
+                
+                task.spawn(function()
+                    local success = CustomHatch:InvokeServer(unpack(args))
+                    if success then
+                        local cam = Workspace.CurrentCamera
+                        local clickX = cam.ViewportSize.X - 5
+                        local clickY = cam.ViewportSize.Y / 2
+                        local clickEndTime = tick() + 2.0
+                        while tick() < clickEndTime do
+                            VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
+                            task.wait(0.01)
+                            VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
+                            task.wait(0.01)
+                        end
+                    end
+                end)
+                
+                if targetCFrame then
+                    root.CFrame = originalCFrame 
+                    _G.isHatching = false
+                    task.wait(1.0)
+                end
+            end)
+        end
+    end
+end)
+
+-- ==========================================
+-- AUTO UPGRADES LOOP
+-- ==========================================
+task.spawn(function()
+    local Network = ReplicatedStorage:WaitForChild("Network")
+    local UpgradeRemote = Network:WaitForChild("EventUpgrades: Purchase")
+    
+    local upgrades = {
+        "SoccerYeetOrbStrength",
+        "SoccerTrickshotThrowChance",
+        "SoccerCriticalThrowChance",
+        "SoccerBetterYeetEgg"
+    }
+
+    while running do
+        task.wait(5)
+        if getUpgradesState() then
+            for _, upgradeName in pairs(upgrades) do
+                if not getUpgradesState() then break end
+                pcall(function()
+                    UpgradeRemote:InvokeServer(upgradeName)
+                end)
+                task.wait(0.2)
+            end
+        end
+    end
+end)
+
+-- ==========================================
+-- AUTO FREE GIFTS LOOP
+-- ==========================================
+task.spawn(function()
+    local Network = ReplicatedStorage:WaitForChild("Network")
+    local RedeemRemote = Network:WaitForChild("Redeem Free Gift")
+
+    while running do
+        task.wait(5)
+        if getGiftsState() then
+            for i = 1, 12 do
+                if not getGiftsState() then break end
+                pcall(function()
+                    RedeemRemote:InvokeServer(i)
+                end)
+                task.wait(0.2)
+            end
+        end
+    end
+end)
+
+-- ==========================================
+-- NO EGG ANIMATION LOOP
+-- ==========================================
+task.spawn(function()
+    local EggsModule = Players.LocalPlayer.PlayerScripts.Scripts.Game:FindFirstChild("Egg Opening Frontend")
+    local originalAnim = nil
+    if EggsModule then
+        pcall(function() originalAnim = getsenv(EggsModule).PlayEggAnimation end)
+    end
+    
+    local wasNoAnim = false
+    while running do
+        task.wait(1)
+        if getNoAnimState() then
+            if not wasNoAnim and EggsModule then
+                pcall(function() getsenv(EggsModule).PlayEggAnimation = function() return end end)
+                wasNoAnim = true
+            end
+        else
+            if wasNoAnim and EggsModule and originalAnim then
+                pcall(function() getsenv(EggsModule).PlayEggAnimation = originalAnim end)
+                wasNoAnim = false
+            end
+        end
+    end
+    
+    if wasNoAnim and EggsModule and originalAnim then
+        pcall(function() getsenv(EggsModule).PlayEggAnimation = originalAnim end)
+    end
+end)
+
+-- ==========================================
+-- KILLSWITCH (PRESS 'L' TO QUIT)
+-- ==========================================
+local UserInputService = game:GetService("UserInputService")
+local killConnection
+
+killConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.L then
+        running = false
+        
+        if ScreenGui then ScreenGui:Destroy() end
+        if OverlayGui then OverlayGui:Destroy() end
+        
+        if killConnection then killConnection:Disconnect() end
+        
+        pcall(function()
+            if setfpscap then setfpscap(0) end
+            local RunService = game:GetService("RunService")
+            local Lighting = game:GetService("Lighting")
+            RunService:Set3dRenderingEnabled(true)
+            Lighting.GlobalShadows = true
+            Workspace.Terrain.WaterWaveSize = 0.05
+        end)
+        
+        print("[Soccer Event] Script terminated and 3D rendering restored.")
+    end
+end)
