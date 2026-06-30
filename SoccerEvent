@@ -1,5 +1,5 @@
 --[[
-    Soccer Event Auto-Farmer (Custom Hatch + Teleport)
+    Soccer Event Auto-Farmer (Dynamic Max Hatch + Skip Animation + New Teleport)
     Made for calzzeyyalt12 | UserID 4126676899
 ]]
 
@@ -11,7 +11,13 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 
 -- ==========================================
--- GUI SETUP
+-- ADJUSTABLE HATCH SETTINGS
+-- ==========================================
+local EGG_HASH = "592fde7fdad14af0bf9f0dfa4fce2185"  -- your current egg hash
+local HATCH_INTERVAL = 1  -- seconds between hatches (lower = faster, watch for server kicks)
+
+-- ==========================================
+-- GUI SETUP (unchanged)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SoccerEventFarmer"
@@ -98,7 +104,7 @@ local function createToggle(name, yPos)
 end
 
 local getOrbsState = createToggle("Auto Collect Orbs", 40)
-local getHatchState = createToggle("Auto Hatch Custom", 85)  -- Now uses your teleport + max hatch
+local getHatchState = createToggle("Auto Hatch Custom", 85)
 local getShootState = createToggle("Auto Shoot", 130)
 local getFpsBoostState = createToggle("FPS Boost", 175)
 
@@ -360,24 +366,61 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO HATCH (TELEPORT + MAX OPEN EVERY 5 SEC)
+-- HELPER: GET MAXIMUM EGG OPENS FOR LOCAL PLAYER
+-- ==========================================
+local function getMaxOpens()
+    local maxOpens = 1  -- fallback
+    pcall(function()
+        local Client = ReplicatedStorage:WaitForChild("Library"):WaitForChild("Client")
+        local EggCmds = require(Client:WaitForChild("EggCmds"))
+        if type(EggCmds.GetMaxHatch) == "function" then
+            maxOpens = EggCmds.GetMaxHatch()
+            if maxOpens and maxOpens > 0 then
+                return maxOpens
+            end
+        end
+    end)
+    pcall(function()
+        local Client = ReplicatedStorage:WaitForChild("Library"):WaitForChild("Client")
+        local Save = require(Client:WaitForChild("Save")).Get()
+        if Save.EggOpens then
+            maxOpens = Save.EggOpens
+        end
+    end)
+    return maxOpens and maxOpens > 0 and maxOpens or 1
+end
+
+-- ==========================================
+-- AUTO SKIP ANIMATION (CLICK SPAM HELPER)
+-- ==========================================
+local function skipAnimation()
+    local cam = Workspace.CurrentCamera
+    if not cam then return end
+    local clickX = cam.ViewportSize.X - 5
+    local clickY = cam.ViewportSize.Y / 2
+    local endTime = tick() + 2.0
+    while tick() < endTime do
+        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
+        task.wait(0.01)
+        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
+        task.wait(0.01)
+    end
+end
+
+-- ==========================================
+-- FAST AUTO HATCH (NEW TELEPORT COORDINATES)
 -- ==========================================
 _G.isHatching = false
 
--- The remotes we need
 local SendPositionRemote = ReplicatedStorage:WaitForChild("Network"):WaitForChild("Send Position")
 local CustomEggsHatchRemote = ReplicatedStorage:WaitForChild("Network"):WaitForChild("CustomEggs_Hatch")
 
--- The teleport CFrames (as provided)
+-- ** UPDATED TELEPORT CFrames **
 local teleportCFrames = {
-    CFrame.new(1427.0546875, 16.664621353149414, -32055.990234375, 0.9399377703666687, 7.914940169939655e-08, -0.34134581685066223, -4.9242501631852065e-08, 1, 9.627922992194726e-08, 0.34134581685066223, -7.368775811755768e-08, 0.9399377703666687),
-    CFrame.new(1427.3909912109375, 33.35685729980469, -32027.845703125, 0.9999285936355591, -0.00567561574280262, 0.010514963418245316, 0, 0.8799915909767151, 0.47498923540115356, -0.011948935687541962, -0.47495532035827637, 0.8799287676811218),
-    CFrame.new(1427.0546875, 18.164621353149414, -32055.990234375, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+    CFrame.new(1425.045166015625, 16.664386749267578, -32054.291015625, 0.9999904632568359, 2.7950056158410064e-10, 0.004363309592008591, 4.742106360366982e-11, 1, -7.492504039419146e-08, -0.004363309592008591, 7.492453590884907e-08, 0.9999904632568359),
+    CFrame.new(1425.146240234375, 59.75007629394531, -31984.814453125, 0.999998927116394, -0.0007470094133168459, 0.0012480155564844608, 0, 0.8580383658409119, 0.5135855674743652, -0.0014544985024258494, -0.5135850310325623, 0.8580374717712402),
+    CFrame.new(1425.045166015625, 18.164386749267578, -32054.291015625, 1, 0, 0, 0, 1, 0, 0, 0, 1)
 }
-
--- Egg hash and amount
-local EGG_HASH = "b2216c4617f84f87ab097b8a6bedb5d2"
-local MAX_OPENS = 5
 
 task.spawn(function()
     while running do
@@ -389,20 +432,26 @@ task.spawn(function()
                 local root = char and char:FindFirstChild("HumanoidRootPart")
                 if not root then return end
 
-                -- Save current position so we can return later if desired
                 local originalCFrame = root.CFrame
 
-                -- Teleport to the egg using Send Position
+                -- Teleport to egg using the NEW coordinates
                 SendPositionRemote:FireServer(unpack(teleportCFrames))
-                task.wait(0.1) -- let the server register
+                task.wait(0.1)
 
-                -- Now hatch max eggs
-                CustomEggsHatchRemote:InvokeServer(EGG_HASH, MAX_OPENS)
+                -- Get your current maximum opens
+                local maxOpens = getMaxOpens()
+                print("[Hatch] Using max opens:", maxOpens)
 
-                -- Wait 5 seconds before next hatch
-                task.wait(5.0)
+                -- Hatch as many as you can
+                CustomEggsHatchRemote:InvokeServer(EGG_HASH, maxOpens)
 
-                -- Return to the farm spot (optional, but safe)
+                -- Start skipping the opening animation (background thread)
+                task.spawn(skipAnimation)
+
+                -- Short cooldown before next hatch
+                task.wait(HATCH_INTERVAL)
+
+                -- Return to farm spot
                 if _G.sweepCenterCFrame and getShootState() then
                     root.CFrame = _G.sweepCenterCFrame
                 else
@@ -465,4 +514,4 @@ killConnection = UserInputService.InputBegan:Connect(function(input, gameProcess
     end
 end)
 
-print("[Soccer Event] Custom Hatch Auto Farmer loaded. Press P to stop.")
+print("[Soccer Event] Fast Custom Hatch + Skip Animation loaded (new teleport). Press P to stop.")
