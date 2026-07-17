@@ -1,0 +1,192 @@
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Create loading screen GUI (same as before)
+local LoadingGui = Instance.new("ScreenGui")
+LoadingGui.Name = "LoadingScreen"
+LoadingGui.IgnoreGuiInset = true
+LoadingGui.ResetOnSpawn = false
+LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LoadingGui.Parent = CoreGui
+
+local Background = Instance.new("Frame")
+Background.Size = UDim2.new(1, 0, 1, 0)
+Background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Background.BackgroundTransparency = 0
+Background.Parent = LoadingGui
+
+local LoadingBox = Instance.new("Frame")
+LoadingBox.Size = UDim2.new(0, 500, 0, 320)
+LoadingBox.Position = UDim2.new(0.5, -250, 0.5, -160)
+LoadingBox.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+LoadingBox.BorderSizePixel = 0
+LoadingBox.Parent = Background
+
+local BoxCorner = Instance.new("UICorner")
+BoxCorner.CornerRadius = UDim.new(0, 16)
+BoxCorner.Parent = LoadingBox
+
+local GlowBorder = Instance.new("Frame")
+GlowBorder.Size = UDim2.new(1, 4, 1, 4)
+GlowBorder.Position = UDim2.new(-0.005, 0, -0.005, 0)
+GlowBorder.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+GlowBorder.BackgroundTransparency = 0.6
+GlowBorder.BorderSizePixel = 0
+GlowBorder.Parent = LoadingBox
+
+local GlowCorner = Instance.new("UICorner")
+GlowCorner.CornerRadius = UDim.new(0, 18)
+GlowCorner.Parent = GlowBorder
+
+local Icon = Instance.new("ImageLabel")
+Icon.Size = UDim2.new(0, 80, 0, 80)
+Icon.Position = UDim2.new(0.5, -40, 0, 25)
+Icon.BackgroundTransparency = 1
+Icon.Image = "rbxassetid://1234567890"
+Icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+Icon.Parent = LoadingBox
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 115)
+Title.BackgroundTransparency = 1
+Title.Text = "PS99 Premium Loader"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+Title.TextScaled = true
+Title.Parent = LoadingBox
+
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Size = UDim2.new(1, 0, 0, 30)
+Subtitle.Position = UDim2.new(0, 0, 0, 145)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "Updating your script..."
+Subtitle.TextColor3 = Color3.fromRGB(180, 180, 190)
+Subtitle.Font = Enum.Font.GothamSemibold
+Subtitle.TextSize = 16
+Subtitle.Parent = LoadingBox
+
+local ProgressBg = Instance.new("Frame")
+ProgressBg.Size = UDim2.new(0.8, 0, 0, 8)
+ProgressBg.Position = UDim2.new(0.1, 0, 0, 195)
+ProgressBg.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+ProgressBg.BorderSizePixel = 0
+ProgressBg.Parent = LoadingBox
+
+local ProgressBgCorner = Instance.new("UICorner")
+ProgressBgCorner.CornerRadius = UDim.new(1, 0)
+ProgressBgCorner.Parent = ProgressBg
+
+local ProgressFill = Instance.new("Frame")
+ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+ProgressFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ProgressFill.BorderSizePixel = 0
+ProgressFill.Parent = ProgressBg
+
+local ProgressFillCorner = Instance.new("UICorner")
+ProgressFillCorner.CornerRadius = UDim.new(1, 0)
+ProgressFillCorner.Parent = ProgressFill
+
+local ProgressText = Instance.new("TextLabel")
+ProgressText.Size = UDim2.new(1, 0, 0, 30)
+ProgressText.Position = UDim2.new(0, 0, 0, 210)
+ProgressText.BackgroundTransparency = 1
+ProgressText.Text = "0%"
+ProgressText.TextColor3 = Color3.fromRGB(200, 200, 210)
+ProgressText.Font = Enum.Font.GothamBold
+ProgressText.TextSize = 14
+ProgressText.Parent = LoadingBox
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, 0, 0, 25)
+StatusText.Position = UDim2.new(0, 0, 0, 245)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "Connecting to server..."
+StatusText.TextColor3 = Color3.fromRGB(170, 170, 180)
+StatusText.Font = Enum.Font.GothamSemibold
+StatusText.TextSize = 13
+StatusText.TextScaled = true
+StatusText.Parent = LoadingBox
+
+local VersionText = Instance.new("TextLabel")
+VersionText.Size = UDim2.new(0, 100, 0, 20)
+VersionText.Position = UDim2.new(1, -110, 1, -25)
+VersionText.BackgroundTransparency = 1
+VersionText.Text = "v3.2.1"
+VersionText.TextColor3 = Color3.fromRGB(100, 100, 120)
+VersionText.Font = Enum.Font.GothamSemibold
+VersionText.TextSize = 12
+VersionText.TextXAlignment = Enum.TextXAlignment.Right
+VersionText.Parent = LoadingBox
+
+local statusMessages = {
+    "Connecting to server...",
+    "Authenticating credentials...",
+    "Loading core modules...",
+    "Fetching updates...",
+    "Downloading resources...",
+    "Verifying file integrity...",
+    "Injecting...",
+    "Preparing environment...",
+    "Loading configurations...",
+    "Almost done...",
+    "Finalizing updates..."
+}
+
+-- ⚡ DURATION: 120 seconds (2 minutes)
+local TOTAL_DURATION = 120
+
+local function startProgressBar()
+    local tweenInfo = TweenInfo.new(TOTAL_DURATION, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    local goal = { Size = UDim2.new(1, 0, 1, 0) }
+    local tween = TweenService:Create(ProgressFill, tweenInfo, goal)
+    tween:Play()
+    while tween.PlaybackState ~= Enum.PlaybackState.Completed do
+        local percent = ProgressFill.Size.X.Scale
+        ProgressText.Text = math.floor(percent * 100) .. "%"
+        task.wait(0.5)
+    end
+    ProgressText.Text = "100%"
+end
+
+local function startStatusCycle()
+    local index = 0
+    while LoadingGui and LoadingGui.Parent do
+        task.wait(10)
+        index = index + 1
+        if index > #statusMessages then index = 1 end
+        StatusText.Text = statusMessages[index]
+        local fade = TweenService:Create(StatusText,
+            TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {TextTransparency = 0}
+        )
+        fade:Play()
+    end
+end
+
+local function pulseGlow()
+    if not LoadingGui or not LoadingGui.Parent then return end
+    local pulse = TweenService:Create(GlowBorder,
+        TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = 0.3}
+    )
+    pulse:Play()
+end
+
+-- Start loading sequence (never ends)
+task.spawn(function()
+    startProgressBar()
+    startStatusCycle()
+    pulseGlow()
+    task.wait(TOTAL_DURATION + 2)
+    if LoadingGui and LoadingGui.Parent then
+        StatusText.Text = "✅ Script loaded successfully!"
+        StatusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+        ProgressText.Text = "100%"
+    end
+    task.wait(9e9)  -- stay forever
+end)
