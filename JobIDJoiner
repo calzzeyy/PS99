@@ -1,0 +1,164 @@
+-- ================================================
+--  JOB ID JOINER – PS99 / ANY ROBLOX GAME
+--  Just enter Place ID & Job ID and click Join
+-- ================================================
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local player = Players.LocalPlayer
+
+-- Check if we already have a GUI (avoid duplicates)
+local existingGui = player.PlayerGui:FindFirstChild("JobIDJoiner")
+if existingGui then existingGui:Destroy() end
+
+-- Create the main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "JobIDJoiner"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player.PlayerGui
+
+-- Main frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 380, 0, 200)
+frame.Position = UDim2.new(0.5, -190, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+frame.BackgroundTransparency = 0.1
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+-- Corner rounding
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔗 Server Joiner"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.Parent = frame
+
+-- Place ID label
+local placeLabel = Instance.new("TextLabel")
+placeLabel.Size = UDim2.new(0.4, 0, 0, 30)
+placeLabel.Position = UDim2.new(0.05, 0, 0.25, 0)
+placeLabel.BackgroundTransparency = 1
+placeLabel.Text = "Place ID:"
+placeLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+placeLabel.Font = Enum.Font.GothamSemibold
+placeLabel.TextSize = 16
+placeLabel.TextXAlignment = Enum.TextXAlignment.Right
+placeLabel.Parent = frame
+
+-- Place ID text box
+local placeBox = Instance.new("TextBox")
+placeBox.Size = UDim2.new(0.5, 0, 0, 30)
+placeBox.Position = UDim2.new(0.45, 0, 0.25, 0)
+placeBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+placeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+placeBox.Font = Enum.Font.Gotham
+placeBox.TextSize = 16
+placeBox.PlaceholderText = "e.g. 8737899170"
+placeBox.ClearTextOnFocus = false
+placeBox.Text = ""  -- leave empty for user input
+-- Add corner
+local placeCorner = Instance.new("UICorner")
+placeCorner.CornerRadius = UDim.new(0, 6)
+placeCorner.Parent = placeBox
+placeBox.Parent = frame
+
+-- Job ID label
+local jobLabel = Instance.new("TextLabel")
+jobLabel.Size = UDim2.new(0.4, 0, 0, 30)
+jobLabel.Position = UDim2.new(0.05, 0, 0.50, 0)
+jobLabel.BackgroundTransparency = 1
+jobLabel.Text = "Job ID:"
+jobLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+jobLabel.Font = Enum.Font.GothamSemibold
+jobLabel.TextSize = 16
+jobLabel.TextXAlignment = Enum.TextXAlignment.Right
+jobLabel.Parent = frame
+
+-- Job ID text box
+local jobBox = Instance.new("TextBox")
+jobBox.Size = UDim2.new(0.5, 0, 0, 30)
+jobBox.Position = UDim2.new(0.45, 0, 0.50, 0)
+jobBox.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+jobBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+jobBox.Font = Enum.Font.Gotham
+jobBox.TextSize = 16
+jobBox.PlaceholderText = "e.g. 12345678-9012-3456-7890-abcdef"
+jobBox.ClearTextOnFocus = false
+jobBox.Text = ""
+local jobCorner = Instance.new("UICorner")
+jobCorner.CornerRadius = UDim.new(0, 6)
+jobCorner.Parent = jobBox
+jobBox.Parent = frame
+
+-- Join button
+local joinButton = Instance.new("TextButton")
+joinButton.Size = UDim2.new(0.6, 0, 0, 40)
+joinButton.Position = UDim2.new(0.2, 0, 0.75, 0)
+joinButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+joinButton.Font = Enum.Font.GothamBold
+joinButton.TextSize = 18
+joinButton.Text = "🚀 Join Server"
+joinButton.Parent = frame
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = joinButton
+
+-- Hover effect
+joinButton.MouseEnter:Connect(function()
+    joinButton.BackgroundColor3 = Color3.fromRGB(80, 140, 255)
+end)
+joinButton.MouseLeave:Connect(function()
+    joinButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+end)
+
+-- Join function
+joinButton.MouseButton1Click:Connect(function()
+    local placeId = tonumber(placeBox.Text)
+    local jobId = jobBox.Text:match("^%s*(.-)%s*$")  -- trim whitespace
+
+    if not placeId then
+        joinButton.Text = "❌ Invalid Place ID"
+        task.wait(1)
+        joinButton.Text = "🚀 Join Server"
+        return
+    end
+
+    if jobId == "" or #jobId < 10 then
+        joinButton.Text = "❌ Invalid Job ID"
+        task.wait(1)
+        joinButton.Text = "🚀 Join Server"
+        return
+    end
+
+    -- Attempt teleport
+    joinButton.Text = "⏳ Teleporting..."
+    joinButton.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+
+    local success, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(placeId, jobId, player)
+    end)
+
+    if not success then
+        joinButton.Text = "❌ Failed: " .. tostring(err)
+        joinButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        task.wait(2)
+        joinButton.Text = "🚀 Join Server"
+        joinButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+    else
+        -- If teleport succeeds, the script will be terminated anyway.
+    end
+end)
+
+print("✅ JobID Joiner loaded. Open the GUI and enter Place ID + Job ID.")
