@@ -1,0 +1,58 @@
+setfpscap(5)
+
+local fireClient = game:GetService("ReplicatedStorage").Network.Instancing_FireCustomFromClient
+local remoteServer = game:GetService("ReplicatedStorage").Network.Instancing_FireCustomFromServer
+
+script_key="MVfzJbtAuioSObPsxuQRnDcgTLtHOgee";
+loadstring(game:HttpGet('https://zaphub.xyz/Exec'))()
+
+
+
+task.wait(20)
+
+
+
+-- Direct teleport to the new position in Pet Simulator 99
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+rootPart.CFrame = CFrame.new(60003.08984375, 1004.167175293, 60652.65625)
+
+
+task.wait(5)
+
+
+-- Tap toggle
+-- https://github.com/notpoiu/cobalt
+
+local Event = game:GetService("ReplicatedStorage").Network.AutoTapper_Toggle
+local Result = table.pack(Event:InvokeServer())
+
+local ExpectedResult = table.unpack({})
+
+
+task.wait(5)
+
+
+-- Turn on auto advance for less than 180
+fireClient:FireServer("TapHeroes", "DW_Latch", true)
+print("Auto advance enabled. Waiting for zone 180...")
+
+
+
+-- Watch for zone updates and disable when target is reached
+local connection
+connection = remoteServer.OnClientEvent:Connect(function(action, subAction, ...)
+    if action == "TapHeroes" and subAction == "TapHeroes_State" then
+        local args = {...}
+        -- CHANGE THIS INDEX to the correct position of the zone number
+        local currentZone = args[1]  -- 1 = first number after "TapHeroes_State"
+
+        if currentZone and currentZone >= 180 then
+            fireClient:FireServer("TapHeroes", "DW_Latch", false)
+            print("Reached zone " .. currentZone .. ", auto advance disabled.")
+            connection:Disconnect()
+        end
+    end
+end)
