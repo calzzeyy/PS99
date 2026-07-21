@@ -1,0 +1,224 @@
+-- ═══════════════════════════════════════════════
+--  SERVER JOINER – Join any Roblox server
+--  Enter Place ID & Job ID, then click Join
+-- ═══════════════════════════════════════════════
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local player = Players.LocalPlayer
+
+-- Remove any existing GUI
+local existingGui = player.PlayerGui:FindFirstChild("ServerJoiner")
+if existingGui then existingGui:Destroy() end
+
+-- ================================================
+--  CREATE GUI
+-- ================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ServerJoiner"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = player.PlayerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 380, 0, 220)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -110)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+mainFrame.BackgroundTransparency = 0.05
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
+
+-- Glow border
+local glowBorder = Instance.new("Frame")
+glowBorder.Size = UDim2.new(1, 6, 1, 6)
+glowBorder.Position = UDim2.new(-0.007, 0, -0.007, 0)
+glowBorder.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+glowBorder.BackgroundTransparency = 0.7
+glowBorder.BorderSizePixel = 0
+glowBorder.Parent = mainFrame
+
+local glowCorner = Instance.new("UICorner")
+glowCorner.CornerRadius = UDim.new(0, 16)
+glowCorner.Parent = glowBorder
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔗 Server Joiner"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.Parent = mainFrame
+
+-- Divider line
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(0.9, 0, 0, 1)
+divider.Position = UDim2.new(0.05, 0, 0.18, 0)
+divider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+divider.BorderSizePixel = 0
+divider.Parent = mainFrame
+
+-- Place ID label
+local placeLabel = Instance.new("TextLabel")
+placeLabel.Size = UDim2.new(0.28, 0, 0, 28)
+placeLabel.Position = UDim2.new(0.06, 0, 0.27, 0)
+placeLabel.BackgroundTransparency = 1
+placeLabel.Text = "Place ID:"
+placeLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+placeLabel.Font = Enum.Font.GothamSemibold
+placeLabel.TextSize = 15
+placeLabel.TextXAlignment = Enum.TextXAlignment.Right
+placeLabel.Parent = mainFrame
+
+local placeBox = Instance.new("TextBox")
+placeBox.Size = UDim2.new(0.55, 0, 0, 32)
+placeBox.Position = UDim2.new(0.38, 0, 0.26, 0)
+placeBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+placeBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+placeBox.Font = Enum.Font.Gotham
+placeBox.TextSize = 15
+placeBox.PlaceholderText = "e.g. 8737899170"
+placeBox.ClearTextOnFocus = false
+placeBox.Text = "8737899170"
+local placeCorner = Instance.new("UICorner")
+placeCorner.CornerRadius = UDim.new(0, 6)
+placeCorner.Parent = placeBox
+placeBox.Parent = mainFrame
+
+-- Job ID label
+local jobLabel = Instance.new("TextLabel")
+jobLabel.Size = UDim2.new(0.28, 0, 0, 28)
+jobLabel.Position = UDim2.new(0.06, 0, 0.48, 0)
+jobLabel.BackgroundTransparency = 1
+jobLabel.Text = "Job ID:"
+jobLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+jobLabel.Font = Enum.Font.GothamSemibold
+jobLabel.TextSize = 15
+jobLabel.TextXAlignment = Enum.TextXAlignment.Right
+jobLabel.Parent = mainFrame
+
+local jobBox = Instance.new("TextBox")
+jobBox.Size = UDim2.new(0.55, 0, 0, 32)
+jobBox.Position = UDim2.new(0.38, 0, 0.47, 0)
+jobBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+jobBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+jobBox.Font = Enum.Font.Gotham
+jobBox.TextSize = 14
+jobBox.PlaceholderText = "e.g. a8d3ebe2-287e-47dc-8338-14cc14381823"
+jobBox.ClearTextOnFocus = false
+jobBox.Text = ""
+local jobCorner = Instance.new("UICorner")
+jobCorner.CornerRadius = UDim.new(0, 6)
+jobCorner.Parent = jobBox
+jobBox.Parent = mainFrame
+
+-- Join button
+local joinButton = Instance.new("TextButton")
+joinButton.Size = UDim2.new(0.6, 0, 0, 42)
+joinButton.Position = UDim2.new(0.2, 0, 0.7, 0)
+joinButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+joinButton.Font = Enum.Font.GothamBold
+joinButton.TextSize = 18
+joinButton.Text = "🚀 Join Server"
+local joinCorner = Instance.new("UICorner")
+joinCorner.CornerRadius = UDim.new(0, 8)
+joinCorner.Parent = joinButton
+joinButton.Parent = mainFrame
+
+-- Hover effect
+joinButton.MouseEnter:Connect(function()
+    joinButton.BackgroundColor3 = Color3.fromRGB(80, 145, 255)
+end)
+joinButton.MouseLeave:Connect(function()
+    joinButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+end)
+
+-- Status text
+local statusText = Instance.new("TextLabel")
+statusText.Size = UDim2.new(1, 0, 0, 25)
+statusText.Position = UDim2.new(0, 0, 0.9, 0)
+statusText.BackgroundTransparency = 1
+statusText.Text = ""
+statusText.TextColor3 = Color3.fromRGB(200, 200, 220)
+statusText.Font = Enum.Font.GothamSemibold
+statusText.TextSize = 13
+statusText.TextScaled = true
+statusText.Parent = mainFrame
+
+-- ================================================
+--  JOIN FUNCTION
+-- ================================================
+joinButton.MouseButton1Click:Connect(function()
+    local placeId = tonumber(placeBox.Text)
+    local jobId = jobBox.Text:match("^%s*(.-)%s*$")
+    
+    if not placeId then
+        statusText.Text = "❌ Invalid Place ID"
+        statusText.TextColor3 = Color3.fromRGB(255, 80, 80)
+        joinButton.Text = "⚠️ Invalid"
+        task.wait(1.5)
+        statusText.Text = ""
+        joinButton.Text = "🚀 Join Server"
+        return
+    end
+    
+    if jobId == "" or #jobId < 10 then
+        statusText.Text = "❌ Invalid Job ID"
+        statusText.TextColor3 = Color3.fromRGB(255, 80, 80)
+        joinButton.Text = "⚠️ Invalid"
+        task.wait(1.5)
+        statusText.Text = ""
+        joinButton.Text = "🚀 Join Server"
+        return
+    end
+    
+    statusText.Text = "⏳ Teleporting to server..."
+    statusText.TextColor3 = Color3.fromRGB(255, 200, 50)
+    joinButton.Text = "⏳ Joining..."
+    joinButton.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+    
+    local success, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(placeId, jobId, player)
+    end)
+    
+    if not success then
+        statusText.Text = "❌ Failed: " .. tostring(err)
+        statusText.TextColor3 = Color3.fromRGB(255, 80, 80)
+        joinButton.Text = "❌ Failed"
+        joinButton.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        task.wait(2)
+        statusText.Text = ""
+        joinButton.Text = "🚀 Join Server"
+        joinButton.BackgroundColor3 = Color3.fromRGB(60, 120, 255)
+    end
+end)
+
+-- ================================================
+--  ENTER KEY SUPPORT
+-- ================================================
+jobBox.Focused:Connect(function()
+    jobBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+end)
+
+jobBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        joinButton.MouseButton1Click:Fire()
+    end
+end)
+
+placeBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        joinButton.MouseButton1Click:Fire()
+    end
+end)
+
+print("✅ Server Joiner loaded - Enter Place ID + Job ID to join any server.")
